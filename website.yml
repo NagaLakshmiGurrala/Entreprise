@@ -1,0 +1,40 @@
+ name: deploy bootstrap-website
+  hosts: all
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: update ec2 instance
+      yum:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: install apache server
+      yum:
+        name: httpd
+        state: latest
+
+    - name: change Apache configuration to listen on port 8080
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen 80'
+line: 'Listen 8080'
+
+
+    - name: create a custom HTML page with instance-specific message
+      copy:
+        content: |
+          <html>
+          <head><title>Hello World</title></head>
+          <body>
+          <h1>Hello World from SJSU-{{ inventory_hostname[-1] }}</h1>
+          </body>
+          </html>
+        dest: /var/www/html/index.html
+
+    - name: start apache server, if not started
+      ansible.builtin.service:
+        enabled: yes
+        name: httpd
+        state: started
